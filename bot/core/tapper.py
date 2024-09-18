@@ -199,6 +199,8 @@ class Tapper:
                                                           headers=new_headers)
                         if response.status in [200, 201]:
                             logger.success(f'{self.session_name} | Reached new lvl - {next_identity}')
+
+                        current_index += 1
                     else:
                         logger.info(f'{self.session_name} | Not enough to update lvl')
                         return False
