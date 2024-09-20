@@ -235,6 +235,11 @@ class Tapper:
                 if not auth_url:
                     return
 
+                signature = await self.login(auth_url=auth_url, proxy=proxy)
+                if signature:
+                    logger.success(f"{self.session_name} | Logged in")
+                    self.auth_token = signature
+
                 if http_client.closed:
                     if proxy_conn:
                         if not proxy_conn.closed:
@@ -242,11 +247,6 @@ class Tapper:
 
                     proxy_conn = ProxyConnector().from_url(proxy) if proxy else None
                     http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
-
-                signature = await self.login(auth_url=auth_url, proxy=proxy)
-                if signature:
-                    logger.success(f"{self.session_name} | Logged in")
-                    self.auth_token = signature
 
                 balance, gems_per_click, day_limit, current_clicks, identity = await self.get_info(http_client)
                 logger.info(f'{self.session_name} | Balance: {balance} | Gems per click - {gems_per_click} | '
