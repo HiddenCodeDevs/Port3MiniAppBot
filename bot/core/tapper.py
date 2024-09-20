@@ -103,8 +103,8 @@ class Tapper:
     async def login(self, auth_url: str, proxy: str):
         response_text = ''
         try:
-            async with self.lock:
-                signature = login_in_browser(auth_url, proxy=proxy)
+            #async with self.lock:
+            signature = login_in_browser(auth_url, proxy=proxy)
 
             return signature
         except Exception as error:
