@@ -86,7 +86,8 @@ def login_in_browser(auth_url: str, proxy: str):
         'proxy': {
             'http': proxy,
             'https': proxy,
-        }
+        },
+        'timeout': 30
     } if proxy else None
 
     if driver is None:
