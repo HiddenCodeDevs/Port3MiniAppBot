@@ -13,6 +13,9 @@ from seleniumwire import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 
 from bot.config import settings
 from bot.utils import logger
@@ -83,26 +86,31 @@ def create_webdriver():
 # Other way
 def login_in_browser(auth_url: str, proxy: str):
     with create_webdriver() as driver:
-        if proxy:
-            proxy_options = {
-                'proxy': {
-                    'http': proxy,
-                    'https': proxy,
-                }
+        proxy_options = {
+            'proxy': {
+                'http': proxy,
+                'https': proxy,
             }
-        else:
-            proxy_options = None
+        } if proxy else None
+
         driver = web_driver(service=web_service(webdriver_path), options=options, seleniumwire_options=proxy_options)
 
         driver.get(auth_url)
-        time.sleep(3)
+
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div[1]/img'))
+            )
+        except Exception as e:
+            logger.error(f"Error waiting for the element: {e}")
+            return None
 
         response_text = '{}'
-
         for request in driver.requests:
             if request.url == "https://api.sograph.xyz/api/login/web2":
                 response_text = request.response.body.decode('utf-8')
                 response_json = json.loads(response_text)
                 signature = response_json.get('data', {}).get('signature', {})
+                return signature
 
-    return signature
+    return None
