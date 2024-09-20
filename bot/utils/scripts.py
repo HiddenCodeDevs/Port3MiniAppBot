@@ -5,6 +5,7 @@ import time
 import random
 import shutil
 import pathlib
+from multiprocessing import Queue
 from contextlib import contextmanager
 
 from better_proxy import Proxy
@@ -73,44 +74,48 @@ options.add_argument("--log-level=3")
 if os.name == 'posix':
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+session_queue = Queue()
+driver = None
 
-
-@contextmanager
-def create_webdriver():
-    driver = web_driver(service=web_service(webdriver_path), options=options)
-    try:
-        yield driver
-    finally:
-        driver.quit()
 
 # Other way
 def login_in_browser(auth_url: str, proxy: str):
-    with create_webdriver() as driver:
-        proxy_options = {
-            'proxy': {
-                'http': proxy,
-                'https': proxy,
-            }
-        } if proxy else None
+    global driver
 
+    proxy_options = {
+        'proxy': {
+            'http': proxy,
+            'https': proxy,
+        }
+    } if proxy else None
+
+    if driver is None:
         driver = web_driver(service=web_service(webdriver_path), options=options, seleniumwire_options=proxy_options)
 
-        driver.get(auth_url)
+    driver.get(auth_url)
 
-        try:
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div[1]/img'))
-            )
-        except Exception as e:
-            logger.error(f"Error waiting for the element: {e}")
-            return None
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, '//*[@id="root"]/div[2]/div/div[2]/div/div[1]/img'))
+        )
+    except Exception as e:
+        logger.error(f"Error waiting for the element: {e}")
+        return None
 
-        response_text = '{}'
-        for request in driver.requests:
-            if request.url == "https://api.sograph.xyz/api/login/web2":
-                response_text = request.response.body.decode('utf-8')
-                response_json = json.loads(response_text)
-                signature = response_json.get('data', {}).get('signature', {})
-                return signature
+    response_text = '{}'
+    signature = ''
+    for request in driver.requests:
+        if request.url == "https://api.sograph.xyz/api/login/web2":
+            response_text = request.response.body.decode('utf-8')
+            response_json = json.loads(response_text)
+            signature = response_json.get('data', {}).get('signature', {})
+            session_queue.put(1)
 
-    return None
+    if len(get_session_names()) == session_queue.qsize():
+        logger.info("All sessions are closed. Quitting driver...")
+        driver.quit()
+        driver = None
+        while session_queue.qsize() > 0:
+            session_queue.get()
+
+    return signature

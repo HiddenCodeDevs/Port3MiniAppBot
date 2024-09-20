@@ -141,7 +141,7 @@ class Tapper:
             payload = {"number": clicks}
             new_headers = await self.generate_headers()
             response = await http_client.post(url='https://api.sograph.xyz/api/mining/tap/click', json=payload,
-                                              headers=new_headers)
+                                              headers=new_headers, ssl=False)
             if response.status in [200, 201]:
                 return True
             return False
@@ -152,7 +152,7 @@ class Tapper:
     async def get_info(self, http_client: aiohttp.ClientSession):
         try:
             new_headers = await self.generate_headers()
-            response = await http_client.get(url='https://api.sograph.xyz/api/mining/tap/userinfo?', headers=new_headers)
+            response = await http_client.get(url='https://api.sograph.xyz/api/mining/tap/userinfo?', headers=new_headers, ssl=False)
             resp_json = await response.json()
             balance = resp_json.get('data').get('gems', 0)
             get_gems_per_click = resp_json.get('data').get('click_gems', 1)
@@ -160,7 +160,7 @@ class Tapper:
             today_clicked = resp_json.get('data').get('daily_use_number', 0)
 
             new_headers = await self.generate_headers()
-            response_lvl_info = await http_client.get(url='https://api.sograph.xyz/api/user/info?', headers=new_headers)
+            response_lvl_info = await http_client.get(url='https://api.sograph.xyz/api/user/info?', headers=new_headers, ssl=False)
             resp_json_lvl = await response_lvl_info.json()
             identity = resp_json_lvl.get('data', {}).get('identity')
 
@@ -196,7 +196,7 @@ class Tapper:
                         new_headers = await self.generate_headers()
                         response = await http_client.post(url='https://api.sograph.xyz/api/user/identity/claim',
                                                           json=payload,
-                                                          headers=new_headers)
+                                                          headers=new_headers, ssl=False)
                         if response.status in [200, 201]:
                             logger.success(f'{self.session_name} | Reached new lvl - {next_identity}')
 
@@ -213,7 +213,7 @@ class Tapper:
 
     async def check_proxy(self, http_client: aiohttp.ClientSession, proxy: Proxy) -> None:
         try:
-            response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
+            response = await http_client.get(url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5), ssl=False)
             ip = (await response.json()).get('origin')
             logger.info(f"{self.session_name} | Proxy IP: {ip}")
         except Exception as error:
